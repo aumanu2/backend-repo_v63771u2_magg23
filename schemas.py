@@ -1,48 +1,53 @@
 """
-Database Schemas
+Database Schemas for College App
 
-Define your MongoDB collection schemas here using Pydantic models.
-These schemas are used for data validation in your application.
-
-Each Pydantic model represents a collection in your database.
-Model name is converted to lowercase for the collection name:
-- User -> "user" collection
-- Product -> "product" collection
-- BlogPost -> "blogs" collection
+Each Pydantic model maps to a MongoDB collection with the lowercase class name.
+Examples:
+- AdminUser -> "adminuser"
+- Student -> "student"
+- Admission -> "admission"
+- Attendance -> "attendance"
 """
 
-from pydantic import BaseModel, Field
-from typing import Optional
+from pydantic import BaseModel, Field, EmailStr
+from typing import Optional, Literal
+import datetime as dt
 
-# Example schemas (replace with your own):
 
-class User(BaseModel):
-    """
-    Users collection schema
-    Collection name: "user" (lowercase of class name)
-    """
+class AdminUser(BaseModel):
+    """Admin users who can log in to manage admissions and attendance"""
     name: str = Field(..., description="Full name")
-    email: str = Field(..., description="Email address")
-    address: str = Field(..., description="Address")
-    age: Optional[int] = Field(None, ge=0, le=120, description="Age in years")
-    is_active: bool = Field(True, description="Whether user is active")
+    email: EmailStr = Field(..., description="Email address (unique)")
+    password: str = Field(..., min_length=6, description="Password (hashed in production)")
+    role: Literal["admin", "staff"] = Field("admin", description="User role")
+    is_active: bool = Field(True, description="Active status")
 
-class Product(BaseModel):
-    """
-    Products collection schema
-    Collection name: "product" (lowercase of class name)
-    """
-    title: str = Field(..., description="Product title")
-    description: Optional[str] = Field(None, description="Product description")
-    price: float = Field(..., ge=0, description="Price in dollars")
-    category: str = Field(..., description="Product category")
-    in_stock: bool = Field(True, description="Whether product is in stock")
 
-# Add your own schemas here:
-# --------------------------------------------------
+class Admission(BaseModel):
+    """Admission application submitted by prospective students"""
+    full_name: str = Field(...)
+    email: EmailStr = Field(...)
+    phone: str = Field(...)
+    address: str = Field(...)
+    program: str = Field(..., description="Program applied for")
+    dob: dt.date = Field(..., description="Date of birth")
+    previous_education: Optional[str] = Field(None)
+    status: Literal["pending", "accepted", "rejected"] = Field("pending")
 
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
+
+class Student(BaseModel):
+    """Student record"""
+    full_name: str = Field(...)
+    email: EmailStr = Field(...)
+    program: str = Field(...)
+    roll_no: Optional[str] = Field(None, description="Roll number")
+    year: Optional[int] = Field(None, ge=1, le=6)
+    is_active: bool = Field(True)
+
+
+class Attendance(BaseModel):
+    """Attendance entry for a student on a specific date"""
+    student_id: str = Field(..., description="ObjectId as string of the student")
+    on_date: dt.date = Field(..., description="Attendance date")
+    status: Literal["present", "absent", "late"] = Field("present")
+    note: Optional[str] = None
